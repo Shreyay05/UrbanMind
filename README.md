@@ -1,4 +1,4 @@
-# Civic Policy – Smart Complaint Management System
+# UrbanMind – Smart Complaint Management System
 
 ## Overview
 **Civic Policy** is a digital platform that enables citizens to register civic complaints related to government departments (such as Health, Sanitation, Infrastructure, etc.) and automatically classifies these complaints based on their nature and urgency.
@@ -17,7 +17,7 @@ The platform integrates a modern frontend, backend API, database, and an AI modu
 
 ## Features
 
-### 🧾 Complaint Registration
+### Complaint Registration
 - Submit complaints via text input  
 - Optional image upload support  
 - Location tagging for complaints  
@@ -27,13 +27,13 @@ The platform integrates a modern frontend, backend API, database, and an AI modu
   - Complaint category  
   - Priority level (Low / Medium / High)  
 
-### Multilingual & Voice Support (Planned)
+### Multilingual & Voice Support 
 - Support for multiple languages (English, Hindi, Malayalam)  
 - Voice-based complaint submission (Speech-to-Text)  
 
 ### Map Visualization
 - View complaints geographically using an interactive map  
-- Hover to view complaint details  
+- Hover to view complaint reference IDs
 
 ### Complaint Tracking
 - Track complaint status using a reference ID  
@@ -62,13 +62,7 @@ The platform integrates a modern frontend, backend API, database, and an AI modu
 
 ## System Architecture
 
-Frontend (React)
-↓
-Backend API (Node.js)
-↓
-Database (MongoDB)
-↓
-AI Module (FastAPI)
+Frontend (React) -> Backend API (Node.js) -> Database (MongoDB) -> AI Module (FastAPI)
 
 
 ---
@@ -88,14 +82,13 @@ AI Module (FastAPI)
 
 ## Project Structure
 UrbanMind/
-│
-├── scia-frontend/ # React frontend
-├── backend/ # Node.js backend
-├── AI-module/ # FastAPI AI service
-│
-├── package.json
-├── requirements.txt
-└── README.md
+    scia-frontend/ # React frontend
+    backend/ # Node.js backend
+    AI-module/ # FastAPI AI service
+
+  package.json
+  requirements.txt
+  README.md
 
 
 ---
@@ -138,4 +131,11 @@ complaints:
 - category
 - priority
 - location
+- citizen name
 - status
+- latitude
+- longitude
+- createdAt
+- updatedAt
+- adminReply
+- closedAt
