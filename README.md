@@ -78,20 +78,7 @@ Frontend (React) -> Backend API (Node.js) -> Database (MongoDB) -> AI Module (Fa
 5. Backend stores complaint in database  
 6. Frontend displays classification results  
 
----
-
-## Project Structure
-UrbanMind/
-    scia-frontend/ # React frontend
-    backend/ # Node.js backend
-    AI-module/ # FastAPI AI service
-
-  package.json
-  requirements.txt
-  README.md
-
-
----
+--
 
 ## Installation & Setup
 
