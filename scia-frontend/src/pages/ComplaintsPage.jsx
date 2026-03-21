@@ -35,26 +35,17 @@ function ComplaintsPage() {
     }
   };
 
+  const validComplaints = complaints.filter(
+    (item) => item.lat && item.lng && !isNaN(Number(item.lat)) && !isNaN(Number(item.lng))
+  );
+
   const mapCenter = useMemo(() => {
-    if (complaints.length > 0) {
-      return [Number(complaints[0].lat), Number(complaints[0].lng)];
+    if (validComplaints.length > 0) {
+      return [Number(validComplaints[0].lat), Number(validComplaints[0].lng)];
     }
     return [28.6139, 77.209];
-  }, [complaints]);
+  }, [validComplaints]);
 
-  const ComplaintsPage = () => {
-  const [list, setList] = useState([]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const res = await axios.get('http://localhost:5000/api/complaints');
-      setList(res.data); // This now includes both CSV data and AI-routed tickets!
-    };
-    fetchData();
-  }, []);
-
-  // Map through 'list' to show your cards/table
-};
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-700 bg-slate-900 shadow-sm">
@@ -78,25 +69,27 @@ function ComplaintsPage() {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
-              {complaints.map((item) => (
+              {validComplaints.map((item) => (
                 <Marker
-                  key={item.id}
+                  key={item._id || item.id}
                   position={[Number(item.lat), Number(item.lng)]}
                   icon={markerIcon}
                 >
                   <Tooltip direction="top" offset={[0, -25]} opacity={1}>
-                    Ref #{item.id}
+                    Ref #{item._id || item.id}
                   </Tooltip>
 
                   <Popup>
                     <div style={{ minWidth: "220px" }}>
-                      <strong>Reference:</strong> #{item.id}
+                      <strong>Reference:</strong> #{item._id || item.id}
                       <br />
                       <strong>Category:</strong> {item.category}
                       <br />
                       <strong>Status:</strong> {item.status}
                       <br />
                       <strong>Priority:</strong> {item.priority}
+                      <br />
+                      <strong>Location:</strong> {item.location}
                       <br />
                       <br />
                       {item.text}
@@ -113,24 +106,34 @@ function ComplaintsPage() {
             <div className="space-y-3">
               {complaints.map((item) => (
                 <div
-                  key={item.id}
+                  key={item._id || item.id}
                   className="rounded-xl border border-slate-700 bg-slate-900 p-4"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-bold text-white">
-                      Ref #{item.id}
+                      Ref #{String(item._id || item.id).slice(-6)}
                     </span>
-                    <span className="text-xs text-slate-300">{item.status}</span>
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        item.status === "Resolved"
+                          ? "bg-green-500/10 text-green-300 border border-green-500/30"
+                          : "bg-yellow-500/10 text-yellow-300 border border-yellow-500/30"
+                      }`}
+                    >
+                      {item.status}
+                    </span>
                   </div>
 
                   <p className="mt-2 text-sm font-medium text-slate-200">
                     {item.category}
                   </p>
 
-                  <p className="mt-2 text-sm text-slate-300">{item.text}</p>
+                  <p className="mt-1 text-xs text-slate-400">{item.location}</p>
+
+                  <p className="mt-2 text-sm text-slate-300 line-clamp-2">{item.text}</p>
 
                   <Link
-                    to={`/track?ref=${item.id}`}
+                    to={`/track?ref=${item._id || item.id}`}
                     className="mt-3 inline-block text-sm font-semibold text-blue-300 hover:text-blue-200"
                   >
                     Track this complaint

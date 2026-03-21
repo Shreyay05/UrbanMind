@@ -16,3 +16,7 @@ npm install -D tailwindcss @tailwindcss/vite
 
 
 npm install react-router-dom
+
+npm install autoprefixer postcss tailwindcss
+
+npm install recharts

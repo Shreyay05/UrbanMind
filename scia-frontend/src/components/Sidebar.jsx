@@ -15,7 +15,7 @@ function Sidebar() {
           Public Grievance Portal
         </p>
         <h2 className="mt-2 text-xl font-bold text-white">
-          Smart Civic AI Assistant
+          UrbanMind
         </h2>
       </div>
 
@@ -45,6 +45,23 @@ function Sidebar() {
           }
         >
           Track by Reference
+        </NavLink>
+
+        {/* Divider */}
+        <div className="pt-4">
+          <div className="border-t border-slate-700 pb-3" />
+          <p className="px-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
+            Admin
+          </p>
+        </div>
+
+        <NavLink
+          to="/admin"
+          className={({ isActive }) =>
+            `${linkBase} ${isActive || window.location.pathname.startsWith("/admin") ? activeLink : inactiveLink}`
+          }
+        >
+          Admin Dashboard
         </NavLink>
       </nav>
     </aside>

@@ -31,6 +31,12 @@ function HomePage() {
           >
             View Map & Complaints
           </Link>
+          <Link
+            to="/admin"
+            className="rounded-lg border border-slate-700 bg-slate-950 px-6 py-3 font-semibold text-slate-500 transition hover:text-slate-300 hover:border-slate-500 text-sm"
+          >
+            Admin
+          </Link>
         </div>
       </div>
     </div>
