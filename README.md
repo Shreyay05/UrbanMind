@@ -105,24 +105,66 @@ cd UrbanMind
 ```bash
 cd backend
 npm install
-npm start
+
+# Start backend server
+node server.js
 ```
 
 ### Setup Frontend
 ```bash
 cd scia-frontend
+
+# (Only if project not already created)
+npm create vite@latest scia-frontend -- --template react
+
 npm install
+
+# Install dependencies
+npm install axios leaflet react-leaflet
+npm install react-router-dom
+npm install recharts
+
+# Tailwind setup
+npm install -D tailwindcss @tailwindcss/vite
+npm install autoprefixer postcss tailwindcss
+
+# Run frontend
 npm run dev
 ```
 
 ### Setup AI Module
 ```bash
 cd AI-module
-python3 -m venv venv
-source venv/bin/activate
 
-python3 -m uvicorn app:app --reload
+python3 -m venv venv
+venv\Scripts\activate
+
+pip install -r requirements.txt
+
+# Run AI server
+uvicorn app:app --reload --port 8000
 ```
+
+### Set up Database
+Step 1: Install MongoDB
+Go to: https://www.mongodb.com/try/download/community
+Select:
+  Platform: Windows
+  Package: .msi
+Download and run installer
+
+Step 2: Install with Recommended Settings
+Choose Complete Setup
+Enable:
+  "Install MongoDB as a Service"
+  "Run service as Network Service user"
+  "Install MongoDB Compass"
+
+Step 3: Verify Installation
+Open MongoDB Compass
+Connect using:
+  mongodb://localhost:27017
+If you see databases like admin, config, local → success
 
 ### Database Schema
 complaints:
