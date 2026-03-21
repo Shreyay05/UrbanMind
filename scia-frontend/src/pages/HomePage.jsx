@@ -9,7 +9,7 @@ function HomePage() {
         </p>
 
         <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-tight md:text-6xl">
-          UrbanMind- Smart Civic AI Assistant
+          UrbanMind
         </h1>
 
         <p className="mt-5 max-w-2xl text-lg text-slate-300">

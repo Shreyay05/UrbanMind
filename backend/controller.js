@@ -1,5 +1,6 @@
 const Complaint = require('./models/Complaint');
 const axios = require('axios');
+const { translateText } = require('./translationService');
 
 // Seed CSV data once into DB (run only if collection is empty)
 const seedCSV = async () => {
@@ -38,22 +39,34 @@ exports.getAllComplaints = async (req, res) => {
 };
 
 exports.createComplaint = async (req, res) => {
-  const { text, location, citizenName, lat, lng } = req.body;
+  const { text, location, citizenName, lat, lng, originalLang } = req.body;
   if (!text) return res.status(400).json({ error: 'Text is required' });
+
+  // Translate to English before sending to AI
+  let englishText = text;
+  if (originalLang && originalLang !== 'en') {
+    console.log(`🌐 Translating from ${originalLang} to English...`);
+    englishText = await translateText(text, originalLang, 'en');
+    console.log(`✅ Translated: "${englishText}"`);
+  }
 
   let category = 'General', priority = 'Low';
 
   try {
-    const mlRes = await axios.post('http://127.0.0.1:8000/predict', { text });
+    const mlRes = await axios.post('http://127.0.0.1:8000/predict', { text: englishText });
     category = mlRes.data.prediction.predicted_department;
     priority = mlRes.data.prediction.priority_level;
   } catch {
-    if (/water|leak|pipe/i.test(text)) category = 'Water';
-    else if (/light|power|electric/i.test(text)) category = 'Electricity';
+    if (/water|leak|pipe/i.test(englishText)) category = 'Water';
+    else if (/light|power|electric|current/i.test(englishText)) category = 'Electricity';
+    else if (/dog|cat|animal|stray/i.test(englishText)) category ='Animal';
+    else if (/waste|garbage|dirty|smell/i.test(englishText)) category = 'Garbage';
+    else if (/disaster|fire|volcano|tornado|cyclone|tsunami|earthquake|flood|leak/i.test(englishText)) category ='Disaster';
   }
 
   const complaint = await Complaint.create({
-    text, category, priority,
+    text,           // store original as typed by user
+    category, priority,
     location: location || 'Unknown',
     citizenName: citizenName || 'Anonymous',
     status: 'Pending',

@@ -1,60 +1,44 @@
-# prediction.py
+# predictor.py
 import joblib
 import re
 from sentence_transformers import SentenceTransformer
 
 class DeepLearningCivicPredictor:
     def __init__(self, model_path='civic_nn_model.pkl'):
-        print("Loading Pre-trained DL Language Model (BERT)...")
         self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        self.model = joblib.load(model_path)
         
-        print("Loading Custom Neural Network...")
-        self.nn_classifier = joblib.load(model_path)
+        # Load the "translators" to turn numbers back into words
+        self.le_cat = joblib.load('le_cat.pkl')
+        self.le_prio = joblib.load('le_prio.pkl')
         
-        # Priority patterns remain unchanged
-        self.high_pattern = re.compile(
-            r'\b(?:emergency|urgent|fire|leak|spill|danger|hazard|gas|spark|cave-in)\b', 
-            re.IGNORECASE
-        )
-        self.medium_pattern = re.compile(
-            r'\b(?:broken|damaged|blocked|out|dead|overflow|smell|odor|dirty)\b', 
-            re.IGNORECASE
-        )
-
-    def detect_priority(self, text):
-        if self.high_pattern.search(text): return "High"
-        elif self.medium_pattern.search(text): return "Medium"
-        return "Low"
+        # Safety Guardrail Keywords
+        self.critical_keywords = r'\b(?:attack|hospital|fire|blood|killed|emergency|injury)\b'
+        self.safety_pattern = re.compile(self.critical_keywords, re.IGNORECASE)
 
     def predict(self, user_text):
-        # 1. AI reads the text and extracts the deep meaning
-        text_embedding = self.encoder.encode([user_text])
+        # 1. AI Vectorization
+        embedding = self.encoder.encode([user_text])
         
-        # 2. Neural Network classifies the meaning
-        predicted_category = self.nn_classifier.predict(text_embedding)[0]
+        # 2. Multi-output Prediction
+        raw_prediction = self.model.predict(embedding)[0] # Returns [cat_num, prio_num]
         
-        priority = self.detect_priority(user_text)
+        category = self.le_cat.inverse_transform([raw_prediction[0]])[0]
+        priority = self.le_prio.inverse_transform([raw_prediction[1]])[0]
         
+        # 3. SAFETY OVERRIDE (The "Dog Attack" Fix)
+        if self.safety_pattern.search(user_text):
+            print("⚠️ [GUARDRAIL] Safety keyword detected. Overriding to High Priority.")
+            priority = "High"
+
         return {
             "text": user_text,
-            "predicted_department": predicted_category,
+            "predicted_department": category,
             "priority_level": priority
         }
 
-# --- Quick Test Execution ---
 if __name__ == "__main__":
     predictor = DeepLearningCivicPredictor('civic_nn_model.pkl')
-    
-    # We use sentences that DO NOT contain the cheat-code words (water, electricity, road, sanitation)
-    test_cases = [
-        "water stagnation on roads and damages nearby electric ports", 
-        "Water starts smelling like sewage after powercut",    
-        "lights are gone again in our area",
-        "The alleyway behind the restaurant smells absolutely rancid."
-    ]
-    
-    print("\n=== LIVE DL PREDICTIONS ===")
-    for case in test_cases:
-        result = predictor.predict(case)
-        print(f"Text: {result['text']}")
-        print(f" -> Route to: {result['predicted_department']} | Priority: {result['priority_level']}\n")
+    test_case = "Dogs biting children and theyre falling sick...it is urgent!!!"
+    result = predictor.predict(test_case)
+    print(f"\nResult of {test_case} Category: {result['predicted_department']} | Priority: {result['priority_level']}")
