@@ -1,13 +1,13 @@
-# 🌍 Civic Policy – Smart Complaint Management System
+# Civic Policy – Smart Complaint Management System
 
-## 📌 Overview
+## Overview
 **Civic Policy** is a digital platform that enables citizens to register civic complaints related to government departments (such as Health, Sanitation, Infrastructure, etc.) and automatically classifies these complaints based on their nature and urgency.
 
 The platform integrates a modern frontend, backend API, database, and an AI module to provide a complete end-to-end complaint management system.
 
 ---
 
-## 🎯 Objectives
+## Objectives
 - Enable citizens to easily submit complaints  
 - Automatically classify complaints using AI  
 - Detect urgency and prioritize issues  
@@ -15,52 +15,52 @@ The platform integrates a modern frontend, backend API, database, and an AI modu
 
 ---
 
-## 🚀 Features
+## Features
 
 ### 🧾 Complaint Registration
 - Submit complaints via text input  
 - Optional image upload support  
 - Location tagging for complaints  
 
-### 🧠 AI-Based Classification
+### AI-Based Classification
 - Automatically detects:
   - Complaint category  
   - Priority level (Low / Medium / High)  
 
-### 🌐 Multilingual & Voice Support (Planned)
+### Multilingual & Voice Support (Planned)
 - Support for multiple languages (English, Hindi, Malayalam)  
 - Voice-based complaint submission (Speech-to-Text)  
 
-### 🗺️ Map Visualization
+### Map Visualization
 - View complaints geographically using an interactive map  
 - Hover to view complaint details  
 
-### 📊 Complaint Tracking
+### Complaint Tracking
 - Track complaint status using a reference ID  
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
-### 🎨 Frontend
+### Frontend
 - React.js  
 - Axios (API calls)  
 - Tailwind CSS  
 - Leaflet.js (Map visualization)  
 
-### ⚙️ Backend
+### Backend
 - Node.js (Express.js)  
 - MongoDB (Database)  
 - CORS enabled  
 
-### 🤖 AI Module
+### AI Module
 - Python (FastAPI)  
 - Scikit-learn  
 - Sentence Transformers (BERT-based embeddings)  
 
 ---
 
-## 🧩 System Architecture
+## System Architecture
 
 Frontend (React)
 ↓
@@ -73,7 +73,7 @@ AI Module (FastAPI)
 
 ---
 
-## 🔄 Workflow
+## Workflow
 
 1. User submits a complaint through the frontend  
 2. Frontend sends request to backend (`/api/complaints`)  
@@ -86,7 +86,7 @@ AI Module (FastAPI)
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 UrbanMind/
 │
 ├── scia-frontend/ # React frontend
@@ -100,9 +100,9 @@ UrbanMind/
 
 ---
 
-## ⚙️ Installation & Setup
+## Installation & Setup
 
-### 1️⃣ Clone the repository
+### Clone the repository
 ```bash
 git clone <your-repo-url>
 cd UrbanMind
