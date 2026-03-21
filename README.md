@@ -78,7 +78,7 @@ Frontend (React) -> Backend API (Node.js) -> Database (MongoDB) -> AI Module (Fa
 5. Backend stores complaint in database  
 6. Frontend displays classification results  
 
---
+---
 
 ## Installation & Setup
 
