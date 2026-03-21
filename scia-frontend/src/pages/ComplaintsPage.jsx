@@ -42,6 +42,19 @@ function ComplaintsPage() {
     return [28.6139, 77.209];
   }, [complaints]);
 
+  const ComplaintsPage = () => {
+  const [list, setList] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const res = await axios.get('http://localhost:5000/api/complaints');
+      setList(res.data); // This now includes both CSV data and AI-routed tickets!
+    };
+    fetchData();
+  }, []);
+
+  // Map through 'list' to show your cards/table
+};
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-700 bg-slate-900 shadow-sm">

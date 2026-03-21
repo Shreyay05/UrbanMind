@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const API_BASE_URL = "http://localhost:5000";
@@ -20,7 +21,7 @@ function RegisterComplaintPage() {
   const [isListening, setIsListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("Click start to record your complaint");
   const recognitionRef = useRef(null);
-
+  const navigate = useNavigate();
   useEffect(() => {
     setupSpeechRecognition();
     getCurrentLocation();
@@ -199,62 +200,42 @@ function RegisterComplaintPage() {
     );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSubmitResult(null);
+  // src/pages/RegisterComplaintPage.jsx
 
-    if (!form.complaintText.trim()) {
-      setError("Please enter a complaint description.");
-      return;
-    }
+const handleSubmit = async (e) => {
+  e.preventDefault(); // 🛑 Stops the page from refreshing
+  setIsSubmitting(true);
+  setError("");
 
-    if (!form.latitude || !form.longitude) {
-      setError("Please provide location coordinates or allow location access.");
-      return;
-    }
+  try {
+    // 1. Send data to Node.js (Port 5000)
+    const response = await axios.post(`${API_BASE_URL}/api/complaints`, {
+      text: form.complaintText,
+      location: form.locationName || "General Area",
+      citizenName: "Shreya (Live User)", // You can change this to a name field later
+      lat: form.latitude,
+      lng: form.longitude
+    });
 
-    setIsSubmitting(true);
+    // 2. Update the "Summary" box below the form
+    setSubmitResult(response.data);
+    
+    // 3. Show the AI result alert
+    alert(`AI Success! Category: ${response.data.category} | Priority: ${response.data.priority}`);
 
-    try {
-      const payload = new FormData();
-      payload.append("complaintText", form.complaintText);
-      payload.append("latitude", form.latitude);
-      payload.append("longitude", form.longitude);
-      payload.append("locationName", form.locationName);
+    // 4. THE REDIRECT: Move to the list page after a 2-second delay
+    // (Delay allows the user to see the "Summary" box first)
+    setTimeout(() => {
+      navigate('/complaints');
+    }, 2000);
 
-      if (imageFile) {
-        payload.append("image", imageFile);
-      }
-
-      const response = await axios.post(`${API_BASE_URL}/api/complaints`, payload, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      setSubmitResult(response.data);
-      clearForm();
-    } catch (err) {
-      const mockComplaint = {
-        id: Date.now(),
-        text: form.complaintText,
-        category: detectCategory(form.complaintText),
-        priority: detectPriority(form.complaintText),
-        status: "Open",
-        lat: Number(form.latitude),
-        lng: Number(form.longitude),
-        locationName: form.locationName,
-        imageUrl: imagePreview || "",
-        createdAt: new Date().toLocaleString(),
-      };
-
-      setSubmitResult(mockComplaint);
-      clearForm();
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  } catch (err) {
+    console.error("Submission failed:", err);
+    setError("Could not reach the AI server. Please check if Node and Python are running.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
