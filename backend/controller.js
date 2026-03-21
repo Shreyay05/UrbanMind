@@ -59,7 +59,7 @@ exports.createComplaint = async (req, res) => {
         });
 
         // Your app.py returns: { "prediction": { "category": "...", "priority": "..." } }
-        const { category, priority } = mlResponse.data.prediction;
+        const { predicted_department: category, priority_level: priority } = mlResponse.data.prediction;
 
         const newEntry = {
             id: complaints.length + 1,
