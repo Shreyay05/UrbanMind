@@ -3,246 +3,277 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import {
   MapContainer,
-  Marker,
-  Popup,
   TileLayer,
+  CircleMarker,
+  Popup,
   Tooltip,
 } from "react-leaflet";
-import L from "leaflet";
 
 const API_BASE_URL = "http://localhost:5000";
 
-const markerIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+const CATEGORIES = ["All", "Water", "Electricity", "Roads", "Sanitation", "Health", "General"];
 
-const VIEW_LANGUAGES = [
-  { label: "English",  isoCode: "en", flag: "🇬🇧" },
-  { label: "हिन्दी",   isoCode: "hi", flag: "🇮🇳" },
-  { label: "தமிழ்",   isoCode: "ta", flag: "🇮🇳" },
-  { label: "తెలుగు",  isoCode: "te", flag: "🇮🇳" },
-  { label: "ಕನ್ನಡ",   isoCode: "kn", flag: "🇮🇳" },
-  { label: "മലയാളം", isoCode: "ml", flag: "🇮🇳" },
-  { label: "मराठी",   isoCode: "mr", flag: "🇮🇳" },
-  { label: "বাংলা",   isoCode: "bn", flag: "🇮🇳" },
-];
+const CATEGORY_COLORS = {
+  Water:       { fill: "#378ADD", border: "#185FA5" },
+  Electricity: { fill: "#EF9F27", border: "#BA7517" },
+  Roads:       { fill: "#888780", border: "#5F5E5A" },
+  Sanitation:  { fill: "#1D9E75", border: "#0F6E56" },
+  Health:      { fill: "#D4537E", border: "#993556" },
+  General:     { fill: "#7F77DD", border: "#534AB7" },
+};
 
-function useTranslatedText(text, targetLang) {
-  const [translated, setTranslated] = useState(null);
-  const [loading, setLoading] = useState(false);
+const PRIORITY_SIZE = {
+  High:   { radius: 14, opacity: 0.85 },
+  Medium: { radius: 9,  opacity: 0.65 },
+  Low:    { radius: 6,  opacity: 0.45 },
+};
 
-  useEffect(() => {
-    if (!text || targetLang === "en") {
-      setTranslated(null);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    axios
-      .post(`${API_BASE_URL}/api/translate`, {
-        text,
-        sourceLang: "en",
-        targetLang,
-      })
-      .then((res) => {
-        if (!cancelled) setTranslated(res.data.translatedText || text);
-      })
-      .catch(() => {
-        if (!cancelled) setTranslated(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [text, targetLang]);
-
-  return { translated, loading };
-}
-
-// Single complaint card with lazy per-card translation
-function ComplaintCard({ item, viewLang }) {
-  const { translated, loading } = useTranslatedText(item.text, viewLang);
-  const displayText = viewLang === "en" ? item.text : (translated ?? item.text);
-
-  return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-bold text-white">
-          Ref #{String(item._id || item.id).slice(-6)}
-        </span>
-        <span
-          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-            item.status === "Resolved"
-              ? "bg-green-500/10 text-green-300 border border-green-500/30"
-              : "bg-yellow-500/10 text-yellow-300 border border-yellow-500/30"
-          }`}
-        >
-          {item.status}
-        </span>
-      </div>
-
-      <p className="mt-2 text-sm font-medium text-slate-200">{item.category}</p>
-      <p className="mt-1 text-xs text-slate-400">{item.location}</p>
-
-      <div className="relative mt-2">
-        {loading && (
-          <div className="absolute inset-0 flex items-center">
-            <span className="text-xs text-slate-500 animate-pulse">Translating…</span>
-          </div>
-        )}
-        <p className={`text-sm text-slate-300 line-clamp-2 ${loading ? "opacity-0" : ""}`}>
-          {displayText}
-        </p>
-      </div>
-
-      {/* Show original if we've translated */}
-      {translated && viewLang !== "en" && (
-        <p className="mt-1 text-xs text-slate-500 italic line-clamp-1" title={item.text}>
-          (Original: {item.text.slice(0, 60)}{item.text.length > 60 ? "…" : ""})
-        </p>
-      )}
-
-      <Link
-        to={`/track?ref=${item._id || item.id}`}
-        className="mt-3 inline-block text-sm font-semibold text-blue-300 hover:text-blue-200"
-      >
-        Track this complaint
-      </Link>
-    </div>
-  );
-}
+const getMarkerStyle = (category, priority) => {
+  const color = CATEGORY_COLORS[category] || CATEGORY_COLORS.General;
+  const size  = PRIORITY_SIZE[priority]   || PRIORITY_SIZE.Medium;
+  return {
+    fillColor:   color.fill,
+    color:       color.border,
+    fillOpacity: size.opacity,
+    radius:      size.radius,
+    weight:      1.5,
+  };
+};
 
 function ComplaintsPage() {
-  const [complaints, setComplaints] = useState([]);
-  const [viewLang, setViewLang] = useState("en");
+  const [complaints, setComplaints]         = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [priorityFilter, setPriorityFilter] = useState("All");
 
   useEffect(() => {
-    fetchComplaints();
+    const fetchData = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/complaints`);
+        setComplaints(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Error fetching complaints", err);
+      }
+    };
+    fetchData();
   }, []);
 
-  const fetchComplaints = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/complaints`);
-      setComplaints(Array.isArray(response.data) ? response.data : []);
-    } catch {
-      setComplaints([]);
-    }
-  };
+  const validComplaints = useMemo(() =>
+    complaints.filter(
+      (c) => c.lat && c.lng && !isNaN(Number(c.lat)) && !isNaN(Number(c.lng))
+    ), [complaints]);
 
-  const validComplaints = complaints.filter(
-    (item) => item.lat && item.lng && !isNaN(Number(item.lat)) && !isNaN(Number(item.lng))
-  );
+  const filtered = useMemo(() => {
+    return validComplaints.filter((c) => {
+      const catOk      = categoryFilter === "All" || c.category === categoryFilter;
+      const priorityOk = priorityFilter === "All" || c.priority === priorityFilter;
+      return catOk && priorityOk;
+    });
+  }, [validComplaints, categoryFilter, priorityFilter]);
 
   const mapCenter = useMemo(() => {
-    if (validComplaints.length > 0)
-      return [Number(validComplaints[0].lat), Number(validComplaints[0].lng)];
-    return [28.6139, 77.209];
-  }, [validComplaints]);
+    if (filtered.length > 0) return [Number(filtered[0].lat), Number(filtered[0].lng)];
+    return [20.5937, 78.9629];
+  }, [filtered]);
 
-  const selectedLangLabel = VIEW_LANGUAGES.find((l) => l.isoCode === viewLang)?.label ?? "English";
+  const priorityBadge = (p) => {
+    if (p === "High")   return "bg-red-500/20 text-red-400";
+    if (p === "Medium") return "bg-yellow-500/20 text-yellow-400";
+    return "bg-green-500/20 text-green-400";
+  };
 
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-700 bg-slate-900 shadow-sm">
-        {/* Header */}
-        <div className="border-b border-slate-700 px-6 py-4">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Map & Registered Complaints</h1>
-              <p className="mt-1 text-sm text-slate-300">
-                Hover over a marker to view the complaint reference number.
-              </p>
-            </div>
 
-            {/* ── View Language Selector ── */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                View In
-              </label>
-              <div className="relative">
-                <select
-                  value={viewLang}
-                  onChange={(e) => setViewLang(e.target.value)}
-                  className="appearance-none rounded-lg border border-slate-600 bg-slate-800 pl-3 pr-8 py-2 text-sm font-semibold text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-                >
-                  {VIEW_LANGUAGES.map((l) => (
-                    <option key={l.isoCode} value={l.isoCode}>
-                      {l.flag} {l.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">▼</span>
-              </div>
-              {viewLang !== "en" && (
-                <p className="text-xs text-blue-400 mt-0.5">
-                  Complaints auto-translated to {selectedLangLabel}
-                </p>
-              )}
+        <div className="border-b border-slate-700 px-6 py-4">
+          <h1 className="text-2xl font-bold text-white">Map & Registered Complaints</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Colour = category &nbsp;·&nbsp; Size = priority &nbsp;·&nbsp; Hover for details
+          </p>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 border-b border-slate-700 px-6 py-4">
+
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 mr-1">Category</span>
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  categoryFilter === cat
+                    ? "bg-[#1f4e79] text-white"
+                    : "border border-slate-600 text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                {cat !== "All" && (
+                  <span
+                    className="mr-1 inline-block h-2 w-2 rounded-full"
+                    style={{ background: CATEGORY_COLORS[cat]?.fill }}
+                  />
+                )}
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400 mr-1">Priority</span>
+            {["All", "High", "Medium", "Low"].map((p) => (
+              <button
+                key={p}
+                onClick={() => setPriorityFilter(p)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  priorityFilter === p
+                    ? "bg-[#1f4e79] text-white"
+                    : "border border-slate-600 text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
+          <span className="ml-auto text-xs text-slate-400 self-center">
+            Showing {filtered.length} of {validComplaints.length} complaints
+          </span>
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap gap-4 px-6 py-3 border-b border-slate-700">
+          {Object.entries(CATEGORY_COLORS).map(([cat, col]) => (
+            <div key={cat} className="flex items-center gap-1.5 text-xs text-slate-300">
+              <span className="h-3 w-3 rounded-full border" style={{ background: col.fill, borderColor: col.border }} />
+              {cat}
             </div>
+          ))}
+          <div className="ml-4 flex items-center gap-3 text-xs text-slate-400">
+            <span>Size:</span>
+            <span className="flex items-center gap-1"><span className="inline-block h-4 w-4 rounded-full bg-slate-500 opacity-80"/> High</span>
+            <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full bg-slate-500 opacity-65"/> Medium</span>
+            <span className="flex items-center gap-1"><span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-500 opacity-45"/> Low</span>
           </div>
         </div>
 
-        {/* Map + List grid */}
-        <div className="grid gap-6 p-6 xl:grid-cols-[1.3fr_0.7fr]">
-          {/* Map */}
-          <div className="overflow-hidden rounded-xl border border-slate-700">
+        {/* Map + List */}
+        <div className="grid gap-6 p-6 xl:grid-cols-[1.4fr_0.6fr]">
+
+          <div className="overflow-hidden rounded-xl border border-slate-700" style={{ height: 520 }}>
             <MapContainer
               center={mapCenter}
-              zoom={13}
-              scrollWheelZoom={true}
-              style={{ height: "500px", width: "100%" }}
+              zoom={5}
+              scrollWheelZoom
+              style={{ height: "100%", width: "100%" }}
             >
               <TileLayer
                 attribution="&copy; OpenStreetMap contributors"
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              {validComplaints.map((item) => (
-                <Marker
-                  key={item._id || item.id}
-                  position={[Number(item.lat), Number(item.lng)]}
-                  icon={markerIcon}
-                >
-                  <Tooltip direction="top" offset={[0, -25]} opacity={1}>
-                    Ref #{item._id || item.id}
-                  </Tooltip>
-                  <Popup>
-                    <div style={{ minWidth: "220px" }}>
-                      <strong>Reference:</strong> #{item._id || item.id}
-                      <br /><strong>Category:</strong> {item.category}
-                      <br /><strong>Status:</strong> {item.status}
-                      <br /><strong>Priority:</strong> {item.priority}
-                      <br /><strong>Location:</strong> {item.location}
-                      <br /><br />{item.text}
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+
+              {filtered.map((item) => {
+                const style = getMarkerStyle(item.category, item.priority);
+                const id = String(item._id || item.id);
+                return (
+                  <CircleMarker
+                    key={id}
+                    center={[Number(item.lat), Number(item.lng)]}
+                    {...style}
+                  >
+                    <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
+                      <div>
+                        <div><span className="font-semibold">{item.category}</span>{" · "}{item.priority} Priority</div>
+                        <div style={{ fontSize: 11, opacity: 0.75 }}>Ref #{id.slice(-6)}</div>
+                      </div>
+                    </Tooltip>
+                    <Popup>
+                      <div style={{ minWidth: 200 }}>
+                        <div className="font-bold" style={{ color: style.fillColor }}>
+                          {item.category}
+                        </div>
+                        <div className="text-xs text-gray-500 uppercase tracking-wide">
+                          {item.priority} Priority · {item.status}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-0.5">Ref #{id.slice(-6)}</div>
+                        <p className="mt-2 text-sm border-t pt-2">{item.text}</p>
+                        <div className="mt-1 text-xs text-gray-400">{item.location}</div>
+                        <a
+                          href={`/track?ref=${id.slice(-6)}`}
+                          className="mt-2 block text-xs font-semibold text-blue-500"
+                        >
+                          Track #{id.slice(-6)}
+                        </a>
+                      </div>
+                    </Popup>
+                  </CircleMarker>
+                );
+              })}
             </MapContainer>
           </div>
 
-          {/* Complaints List */}
-          <div className="max-h-[500px] overflow-y-auto rounded-xl border border-slate-700 bg-slate-800 p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">Registered Complaints</h2>
-              {viewLang !== "en" && (
-                <span className="text-xs rounded-full bg-blue-600/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 font-semibold">
-                  {VIEW_LANGUAGES.find(l => l.isoCode === viewLang)?.flag} {selectedLangLabel}
-                </span>
-              )}
-            </div>
+          {/* Complaint list */}
+          <div className="max-h-[520px] overflow-y-auto rounded-xl border border-slate-700 bg-slate-800 p-3 space-y-2">
+            <h2 className="sticky top-0 bg-slate-800 pb-2 text-sm font-bold text-white">
+              Complaints ({filtered.length})
+            </h2>
 
-            <div className="space-y-3">
-              {complaints.map((item) => (
-                <ComplaintCard
-                  key={item._id || item.id}
-                  item={item}
-                  viewLang={viewLang}
-                />
-              ))}
-            </div>
+            {filtered.length === 0 && (
+              <p className="text-center text-xs text-slate-400 pt-8">
+                No complaints match the current filters.
+              </p>
+            )}
+
+            {filtered.map((item) => {
+              const id = String(item._id || item.id);
+              const color = CATEGORY_COLORS[item.category] || CATEGORY_COLORS.General;
+              return (
+                <div
+                  key={id}
+                  className="rounded-lg border border-slate-700 bg-slate-900 p-3 hover:bg-slate-700/50 transition"
+                >
+                  {/* Category + priority */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                        style={{ background: color.fill }}
+                      />
+                      <span className="text-xs font-bold text-slate-200">{item.category}</span>
+                    </div>
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${priorityBadge(item.priority)}`}>
+                      {item.priority}
+                    </span>
+                  </div>
+
+                  {/* Reference ID + status */}
+                  <div className="mt-1.5 flex items-center gap-1">
+                    <span className="text-[10px] text-slate-500">Ref</span>
+                    <span className="font-mono text-[10px] font-bold text-slate-300">#{id.slice(-6)}</span>
+                    <span className={`ml-auto rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                      item.status === "Resolved"
+                        ? "bg-green-500/20 text-green-400"
+                        : "bg-yellow-500/20 text-yellow-400"
+                    }`}>
+                      {item.status}
+                    </span>
+                  </div>
+
+                  {/* Complaint text */}
+                  <p className="mt-1.5 text-xs text-slate-400 line-clamp-2">{item.text}</p>
+
+                  {/* Location + track link */}
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-slate-500 truncate max-w-[130px]">{item.location}</span>
+                    <Link
+                      to={`/track?ref=${id.slice(-6)}`}
+                      className="text-[10px] font-semibold text-blue-400 hover:text-blue-300 flex-shrink-0 underline underline-offset-2"
+                    >
+                      Track complaint →
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
