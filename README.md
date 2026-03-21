@@ -95,8 +95,8 @@ npm install
 ```
 
 Create .env file in backend:
-MONGO_URI=mongodb://127.0.0.1:27017/urbanmind
-PORT=5000
+- MONGO_URI=mongodb://127.0.0.1:27017/urbanmind
+- PORT=5000
 
 Start backend server
 ```bash
