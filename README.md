@@ -98,7 +98,7 @@ Create .env file in backend:
 MONGO_URI=mongodb://127.0.0.1:27017/urbanmind
 PORT=5000
 
-# Start backend server
+Start backend server
 ```bash
 node server.js
 ```
@@ -122,7 +122,7 @@ npm install autoprefixer postcss tailwindcss
 npm run dev
 ```
 
-### Setup AI Module
+# Setup AI Module
 ```bash
 cd AI-module
 
@@ -131,26 +131,26 @@ python3 -m venv venv
 
 ## Activate environment:
 
-# Windows:
+### Windows:
 
 ```bash
 venv\Scripts\activate
 ```
 
-# Mac/Linux:
+### Mac/Linux:
 
 ```bash
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-# Run AI server
+## Run AI server
 ```bash
 uvicorn app:app --reload --port 8000
 ```
 
-### Set up Database
-## Windows
+## Set up Database
+### Windows
 Step 1: Install MongoDB
 Go to: https://www.mongodb.com/try/download/community
 Select:
@@ -171,7 +171,7 @@ Connect using:
   mongodb://localhost:27017
 If you see databases like admin, config, local → success
 
-## macOS
+### macOS
 ```bash
 brew tap mongodb/brew
 brew install mongodb-community
@@ -199,23 +199,23 @@ complaints:
 - adminReply
 - closedAt
 
-### Run the Full Application
+# Run the Full Application
 
 ## Open 3 terminals:
 
-# Terminal 1 (Backend)
+### Terminal 1 (Backend)
 ```bash
 cd backend
 node server.js
 ```
 
-# Terminal 2 (Frontend)
+### Terminal 2 (Frontend)
 ```bash
 cd scia-frontend
 npm run dev
 ```
 
-# Terminal 3 (AI Module)
+### Terminal 3 (AI Module)
 ```bash
 cd AI-module
 venv\Scripts\activate   # or source venv/bin/activate
