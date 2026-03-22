@@ -224,6 +224,25 @@ priority = self.le_prio.inverse_transform([raw_prediction[1]])[0]
 
 
 ---
+# Model Performance Update 
+
+##  Updated Deep Learning Model Metrics 
+
+We have improved the performance of our civic complaint classification model. Below are the latest evaluation results:
+<img width="1126" height="446" alt="image" src="https://github.com/user-attachments/assets/45912108-fbc6-48d4-b8de-88d7348a6bdd" />
+
+
+---
+
+##  Overall Performance 
+
+- **Accuracy:** 95%
+- **Macro Average (Precision / Recall / F1-score):** 0.95 / 0.95 / 0.95
+- **Weighted Average (Precision / Recall / F1-score):** 0.95 / 0.95 / 0.95
+
+---
+
+
 
 ## Safety Override
 
