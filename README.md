@@ -60,6 +60,188 @@ The platform integrates a modern frontend, backend API, database, and an AI modu
 
 ---
 
+## Machine Learning Model
+
+This project uses a hybrid AI pipeline combining:
+
+* Pretrained Transformer Model (BERT-based)
+* Custom Multiclass Neural Network (MLPClassifier)
+
+---
+
+## Model Architecture
+
+### 1. Text Embedding Model
+
+We use a pretrained sentence transformer:
+
+* Model: `all-MiniLM-L6-v2`
+* Library: `sentence-transformers`
+
+#### Purpose:
+
+Convert raw complaint text into dense numerical vectors (embeddings) that capture semantic meaning.
+
+#### Key Characteristics:
+
+* Lightweight transformer model (~80MB)
+* Efficient on CPU
+* Generates fixed-length vector embeddings (~384 dimensions)
+* Captures contextual meaning better than traditional methods like TF-IDF
+
+---
+
+### 2. Classification Model
+
+We use a Multiclass Neural Network (MLPClassifier):
+
+* Type: Feedforward Neural Network
+* Library: `scikit-learn`
+* Defined in: `model.py` via `build_dl_classifier()`
+
+#### Outputs:
+
+* Complaint Category (multiclass classification)
+* Complaint Priority (Low / Medium / High)
+
+---
+
+## Training Pipeline
+
+```text
+Raw Complaint Text
+        ↓
+Sentence Transformer (BERT)
+        ↓
+Vector Embeddings
+        ↓
+Train/Test Split (80/20)
+        ↓
+MLP Neural Network Training
+        ↓
+Model Evaluation
+        ↓
+Model Saved (.pkl)
+```
+
+---
+
+## Training Configuration
+
+### Dataset
+
+* File: `civic_issues_training_data.csv`
+* Columns used:
+
+  * `complaints` → input text
+  * `category` → target label
+
+### Preprocessing
+
+```python
+df = df.dropna(subset=['complaints', 'category'])
+```
+
+---
+
+### Train-Test Split
+
+```python
+train_test_split(
+    X_embeddings,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+```
+
+* Training Data: 80%
+* Testing Data: 20%
+* Random State: 42 (ensures reproducibility)
+
+---
+
+### Embedding Generation
+
+```python
+encoder = SentenceTransformer('all-MiniLM-L6-v2')
+X_embeddings = encoder.encode(X_text)
+```
+
+* Converts text into dense vector representations
+* Pretrained weights are downloaded automatically on first run
+
+---
+
+### Neural Network Training
+
+```python
+nn_classifier = build_dl_classifier()
+nn_classifier.fit(X_train, y_train)
+```
+
+* Learns mapping from embeddings to categories
+
+---
+
+## Model Evaluation
+
+```python
+y_pred = nn_classifier.predict(X_test)
+print(classification_report(y_test, y_pred))
+```
+
+### Metrics:
+
+* Precision
+* Recall
+* F1-score
+
+These metrics are used to evaluate classification performance.
+
+---
+
+## Model Weights and Saving
+
+```python
+joblib.dump(nn_classifier, model_save_path)
+```
+
+### Saved File:
+
+* `civic_nn_model.pkl`
+
+### Stored Components:
+
+* Trained neural network weights
+* Learned classification parameters
+
+---
+
+## Inference (Prediction Phase)
+
+During runtime (`predictor.py`):
+
+1. Load pretrained transformer
+2. Load trained neural network (`.pkl`)
+3. Process input complaint
+
+```text
+Input Text → Embedding → Neural Network → Prediction
+```
+
+---
+
+## Advantages
+
+* Captures semantic meaning using transformer embeddings
+* Lightweight and efficient inference
+* Works well on real-world text data
+* Modular architecture allows easy updates
+
+---
+
+
 ## System Architecture
 
 Frontend (React) -> Backend API (Node.js) -> Database (MongoDB) -> AI Module (FastAPI)
