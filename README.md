@@ -71,7 +71,7 @@ Built using *Sentence Transformers + Neural Networks (MLPClassifier)* with an ad
 
 ## Project Structure
 
-
+```text
 AI-module/
 │── training.py          # Model training pipeline
 │── model.py             # Neural network architecture
@@ -80,7 +80,7 @@ AI-module/
 │── le_cat.pkl           # Category label encoder
 │── le_prio.pkl          # Priority label encoder
 │── civic_issues_training_data.csv
-
+```
 ---
 
 ## Model Architecture
