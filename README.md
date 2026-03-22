@@ -58,14 +58,28 @@ The platform integrates a modern frontend, backend API, database, and an AI modu
 - Scikit-learn  
 - Sentence Transformers (BERT-based embeddings)  
 
+# AI Module
+
+AI-powered civic complaint classification system that automatically predicts:
+
+*  *Department / Category*
+*  *Priority Level (Low / Medium / High)*
+
+Built using *Sentence Transformers + Neural Networks (MLPClassifier)* with an additional *safety override layer* for critical situations.
+
 ---
 
-## Machine Learning Model
+## Project Structure
 
-This project uses a hybrid AI pipeline combining:
 
-* Pretrained Transformer Model (BERT-based)
-* Custom Multiclass Neural Network (MLPClassifier)
+AI-module/
+│── training.py          # Model training pipeline
+│── model.py             # Neural network architecture
+│── predictor.py         # Inference + safety override
+│── civic_nn_model.pkl   # Trained model
+│── le_cat.pkl           # Category label encoder
+│── le_prio.pkl          # Priority label encoder
+│── civic_issues_training_data.csv
 
 ---
 
@@ -73,181 +87,193 @@ This project uses a hybrid AI pipeline combining:
 
 ### 1. Text Embedding Model
 
-We use a pretrained sentence transformer:
-
-* Model: `all-MiniLM-L6-v2`
-* Library: `sentence-transformers`
-
-#### Purpose:
-
-Convert raw complaint text into dense numerical vectors (embeddings) that capture semantic meaning.
-
-#### Key Characteristics:
-
-* Lightweight transformer model (~80MB)
-* Efficient on CPU
-* Generates fixed-length vector embeddings (~384 dimensions)
-* Captures contextual meaning better than traditional methods like TF-IDF
+* *Model:* all-MiniLM-L6-v2
+* *Library:* SentenceTransformers
+* Converts complaint text → dense semantic vectors (~384-dim)
 
 ---
 
-### 2. Classification Model
+### 2. Neural Network Classifier
 
-We use a Multiclass Neural Network (MLPClassifier):
+* *Model:* MLPClassifier (Scikit-learn)
 
-* Type: Feedforward Neural Network
-* Library: `scikit-learn`
-* Defined in: `model.py` via `build_dl_classifier()`
+*Architecture:*
 
-#### Outputs:
-
-* Complaint Category (multiclass classification)
-* Complaint Priority (Low / Medium / High)
+* Input: Embeddings
+* Hidden Layers: (128, 64)
+* Output: Multi-output prediction
+  → [category, priority]
 
 ---
 
 ## Training Pipeline
 
-```text
-Raw Complaint Text
-        ↓
-Sentence Transformer (BERT)
-        ↓
-Vector Embeddings
-        ↓
-Train/Test Split (80/20)
-        ↓
-MLP Neural Network Training
-        ↓
-Model Evaluation
-        ↓
-Model Saved (.pkl)
-```
+### 1. Load & Clean Data
 
----
-
-## Training Configuration
-
-### Dataset
-
-* File: `civic_issues_training_data.csv`
-* Columns used:
-
-  * `complaints` → input text
-  * `category` → target label
-
-### Preprocessing
-
-```python
+python
+df = pd.read_csv(data_path)
 df = df.dropna(subset=['complaints', 'category'])
-```
 
----
 
-### Train-Test Split
+### 2. Prepare Inputs
 
-```python
-train_test_split(
-    X_embeddings,
-    y,
-    test_size=0.2,
-    random_state=42
-)
-```
+python
+X_text = df['complaints'].tolist()
+y = df['category'].tolist()
 
-* Training Data: 80%
-* Testing Data: 20%
-* Random State: 42 (ensures reproducibility)
 
----
+### 3. Generate Embeddings
 
-### Embedding Generation
-
-```python
+python
 encoder = SentenceTransformer('all-MiniLM-L6-v2')
 X_embeddings = encoder.encode(X_text)
-```
 
-* Converts text into dense vector representations
-* Pretrained weights are downloaded automatically on first run
 
----
+### 4. Train-Test Split
 
-### Neural Network Training
+python
+X_train, X_test, y_train, y_test = train_test_split(
+    X_embeddings, y, test_size=0.2, random_state=42
+)
 
-```python
-nn_classifier = build_dl_classifier()
+
+### 5. Train Model
+
+python
 nn_classifier.fit(X_train, y_train)
-```
 
-* Learns mapping from embeddings to categories
 
----
+### 6. Evaluate
 
-## Model Evaluation
-
-```python
-y_pred = nn_classifier.predict(X_test)
+python
 print(classification_report(y_test, y_pred))
-```
 
-### Metrics:
 
-* Precision
-* Recall
-* F1-score
+### 7. Save Model
 
-These metrics are used to evaluate classification performance.
+python
+joblib.dump(nn_classifier, 'civic_nn_model.pkl')
+
 
 ---
 
-## Model Weights and Saving
+## Training Parameters
 
-```python
-joblib.dump(nn_classifier, model_save_path)
-```
+python
+MLPClassifier(
+    hidden_layer_sizes=(128, 64),
+    activation='relu',
+    solver='adam',
+    max_iter=1000,
+    early_stopping=False,
+    alpha=0.05,
+    random_state=42
+)
 
-### Saved File:
 
-* `civic_nn_model.pkl`
-
-### Stored Components:
-
-* Trained neural network weights
-* Learned classification parameters
-
----
-
-## Inference (Prediction Phase)
-
-During runtime (`predictor.py`):
-
-1. Load pretrained transformer
-2. Load trained neural network (`.pkl`)
-3. Process input complaint
-
-```text
-Input Text → Embedding → Neural Network → Prediction
-```
+| Parameter          | Value     |
+| ------------------ | --------- |
+| hidden_layer_sizes | (128, 64) |
+| activation         | relu      |
+| solver             | adam      |
+| max_iter           | 1000      |
+| early_stopping     | False     |
+| alpha              | 0.05      |
+| random_state       | 42        |
 
 ---
 
-## Advantages
+## Model Weights
 
-* Captures semantic meaning using transformer embeddings
-* Lightweight and efficient inference
-* Works well on real-world text data
-* Modular architecture allows easy updates
+* Learned during training via backpropagation
+* Stored inside the trained MLPClassifier
+* Saved using:
+
+python
+joblib.dump(nn_classifier, 'civic_nn_model.pkl')
+
 
 ---
 
-## Summary of model
+## Prediction Pipeline
 
-The classification model is a Multiclass Neural Network implemented using MLPClassifier with two hidden layers of sizes 256 and 128. The input to the model is a 384-dimensional embedding generated using a pretrained Sentence Transformer (all-MiniLM-L6-v2).
+### 1. Load Model
 
-The network uses ReLU activation in hidden layers and Softmax in the output layer to produce probability distributions over 5 classes. The model is trained using the Adam optimizer with L2 regularization (alpha = 0.1) and a maximum of 1000 iterations.
+python
+self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+self.model = joblib.load('civic_nn_model.pkl')
 
-The learned weight matrices have dimensions (384×256), (256×128), and (128×5), corresponding to transformations between layers. The trained model is stored using joblib and used during inference for real-time classification.
+
+### 2. Convert Input → Embedding
+
+python
+embedding = self.encoder.encode([user_text])
+
+
+### 3. Predict
+
+python
+raw_prediction = self.model.predict(embedding)[0]
+
+
+### 4. Decode Labels
+
+python
+category = self.le_cat.inverse_transform([raw_prediction[0]])[0]
+priority = self.le_prio.inverse_transform([raw_prediction[1]])[0]
+
+
+---
+
+## Safety Override
+
+Critical keywords are detected using regex:
+
+python
+r'\b(?:attack|hospital|fire|blood|killed|emergency|injury)\b'
+
+
+If detected:
+
+python
+priority = "High"
+
+
+---
+
+## Output Format
+
+json
+{
+  "text": "User complaint",
+  "predicted_department": "Department Name",
+  "priority_level": "High"
+}
+
+
+---
+
+## Usage
+
+### Train Model
+
+bash
+python training.py
+
+
+### Run Prediction
+
+bash
+python predictor.py
+
+
+---
+
+## Dependencies
+
+bash
+pip install pandas scikit-learn sentence-transformers joblib
+
 
 ---
 
