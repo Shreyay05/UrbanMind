@@ -241,6 +241,15 @@ Input Text → Embedding → Neural Network → Prediction
 
 ---
 
+## Summary of model
+
+The classification model is a Multiclass Neural Network implemented using MLPClassifier with two hidden layers of sizes 256 and 128. The input to the model is a 384-dimensional embedding generated using a pretrained Sentence Transformer (all-MiniLM-L6-v2).
+
+The network uses ReLU activation in hidden layers and Softmax in the output layer to produce probability distributions over 5 classes. The model is trained using the Adam optimizer with L2 regularization (alpha = 0.1) and a maximum of 1000 iterations.
+
+The learned weight matrices have dimensions (384×256), (256×128), and (128×5), corresponding to transformations between layers. The trained model is stored using joblib and used during inference for real-time classification.
+
+---
 
 ## System Architecture
 
